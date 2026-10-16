@@ -13,17 +13,17 @@ export function Register({ value, scheme, onFlip }: RegisterProps) {
   );
 
   return (
-    <div className="register">
-      <div className="register__value">{toHex(value)}</div>
+    <div className="pt-3 pb-4">
+      <div className="mb-2 text-center text-2xl text-accent">{toHex(value)}</div>
       {addresses.map((bits, byte) => (
-        <div className="register__byte" key={byte}>
+        <div className="grid grid-cols-8 gap-1.5" key={byte}>
           {bits.map((address) => {
             const on = isBitSet(value, address);
             return (
               <button
                 key={address.bit}
                 type="button"
-                className={`bit ${on ? 'bit--on' : ''}`}
+                className={`flex min-h-14 flex-col items-center justify-center rounded-lg border ${on ? 'border-accent bg-accent/20' : 'border-line bg-panel'}`}
                 aria-pressed={on}
                 aria-label={`Bit ${address.bit}`}
                 onPointerDown={(event) => {
@@ -31,8 +31,8 @@ export function Register({ value, scheme, onFlip }: RegisterProps) {
                   onFlip(address);
                 }}
               >
-                <span className="bit__value">{on ? 1 : 0}</span>
-                <span className="bit__key">{scheme.keyForAddress(address)}</span>
+                <span className="text-2xl font-bold">{on ? 1 : 0}</span>
+                <span className="text-xs text-muted">{scheme.keyForAddress(address)}</span>
               </button>
             );
           })}

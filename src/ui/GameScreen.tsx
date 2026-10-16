@@ -3,6 +3,7 @@ import type { GameMode } from '../engine/types';
 import type { KeyboardScheme } from '../input/types';
 import { useKeyboardInput } from '../input/useKeyboardInput';
 import { loadHighScore, saveHighScore } from '../persistence/highScore';
+import { primaryButton } from './buttonStyles';
 import { Hud } from './Hud';
 import { Playfield } from './Playfield';
 import { Register } from './Register';
@@ -40,15 +41,15 @@ export function GameScreen({ mode, scheme }: GameScreenProps) {
   }, [isOver, playAgain]);
 
   return (
-    <main className="game">
+    <main className="relative mx-auto flex h-dvh max-w-2xl flex-col px-3 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] select-none">
       <Hud score={state.score} lives={state.lives} highScore={highScore} />
       <Playfield enemies={state.enemies} />
       <Register value={state.register} scheme={scheme} onFlip={flip} />
       {isOver && (
-        <div className="overlay">
-          <h2>Game over</h2>
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-bg/85">
+          <h2 className="text-3xl font-bold text-danger">Game over</h2>
           <p>Score {state.score}</p>
-          <button type="button" className="primary" onClick={playAgain}>
+          <button type="button" className={primaryButton} onClick={playAgain}>
             Play again
           </button>
         </div>

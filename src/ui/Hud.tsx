@@ -6,7 +6,7 @@ interface HudProps {
 
 export function Hud({ score, lives, highScore }: HudProps) {
   return (
-    <header className="hud">
+    <header className="flex justify-between px-1 py-3 text-muted">
       <span>Score {score}</span>
       <span>Lives {lives}</span>
       <span>Best {highScore}</span>
