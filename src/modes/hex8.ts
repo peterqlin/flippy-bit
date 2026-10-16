@@ -7,7 +7,7 @@ export const hex8: GameMode = {
   registerBytes: 1,
   config: {
     lives: 1,
-    destructionDelayMs: 400,
+    destructionDelayMs: 1300,
     spawnIntervalMs: 2000,
     enemyFallMs: 8000,
     difficultyDoublesAtScore: 60,

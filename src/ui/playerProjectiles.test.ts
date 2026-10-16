@@ -168,8 +168,9 @@ describe('firedProjectilePosition', () => {
   });
 
   it('decelerates while aligning', () => {
-    const firstHalf = at(1000 + 80).x - start.x;
-    const secondHalf = aligned.x - at(1000 + 80).x;
+    const midAlign = at((1000 + alignedAtMs) / 2);
+    const firstHalf = midAlign.x - start.x;
+    const secondHalf = aligned.x - midAlign.x;
 
     expect(firstHalf).toBeGreaterThan(secondHalf);
   });

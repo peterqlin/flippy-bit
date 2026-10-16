@@ -3,7 +3,7 @@ import type { GameState } from '../engine/types';
 
 export const RISE_MS = 150;
 /** Share of the destruction delay spent converging under the enemy; the rest is the upward flight. */
-export const ALIGN_FRACTION = 0.4;
+export const ALIGN_FRACTION = 0.7;
 
 export interface Point {
   x: number;
