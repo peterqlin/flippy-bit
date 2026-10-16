@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 import type { BitAddress } from '../engine/bytes';
 import { createGame, flipBit, step } from '../engine/game';
 import type { GameMode, GameState } from '../engine/types';
+import { explosionsAfterFlip, explosionsAfterStep, type Explosion } from './explosions';
 import {
   playerProjectilesAfterFlip,
   createPlayerProjectiles,
@@ -15,10 +16,15 @@ const MAX_FRAME_MS = 100;
 interface Snapshot {
   game: GameState;
   playerProjectiles: PlayerProjectiles;
+  explosions: Explosion[];
 }
 
 function startingSnapshot(mode: GameMode): Snapshot {
-  return { game: createGame(mode), playerProjectiles: createPlayerProjectiles(mode.registerBytes) };
+  return {
+    game: createGame(mode),
+    playerProjectiles: createPlayerProjectiles(mode.registerBytes),
+    explosions: [],
+  };
 }
 
 function createGameStore(mode: GameMode) {
@@ -26,7 +32,11 @@ function createGameStore(mode: GameMode) {
   const listeners = new Set<() => void>();
 
   function update(next: Snapshot) {
-    if (next.game === snapshot.game && next.playerProjectiles === snapshot.playerProjectiles)
+    if (
+      next.game === snapshot.game &&
+      next.playerProjectiles === snapshot.playerProjectiles &&
+      next.explosions === snapshot.explosions
+    )
       return;
     snapshot = next;
     listeners.forEach((listener) => listener());
@@ -43,6 +53,7 @@ function createGameStore(mode: GameMode) {
       update({
         game,
         playerProjectiles: withoutLandedPlayerProjectiles(snapshot.playerProjectiles, game),
+        explosions: explosionsAfterStep(snapshot.explosions, snapshot.game, game, Math.random),
       });
     },
     flip(address: BitAddress) {
@@ -55,6 +66,7 @@ function createGameStore(mode: GameMode) {
           address,
           game,
         ),
+        explosions: explosionsAfterFlip(snapshot.explosions, snapshot.game, game, Math.random),
       });
     },
     restart: () => update(startingSnapshot(mode)),
@@ -63,7 +75,10 @@ function createGameStore(mode: GameMode) {
 
 export function useGame(mode: GameMode) {
   const [store] = useState(() => createGameStore(mode));
-  const { game, playerProjectiles } = useSyncExternalStore(store.subscribe, store.getSnapshot);
+  const { game, playerProjectiles, explosions } = useSyncExternalStore(
+    store.subscribe,
+    store.getSnapshot,
+  );
 
   useEffect(() => {
     let frame = 0;
@@ -79,5 +94,5 @@ export function useGame(mode: GameMode) {
 
   const flip = useCallback((address: BitAddress) => store.flip(address), [store]);
 
-  return { state: game, playerProjectiles, flip, restart: store.restart };
+  return { state: game, playerProjectiles, explosions, flip, restart: store.restart };
 }

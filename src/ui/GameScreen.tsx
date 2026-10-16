@@ -16,7 +16,7 @@ interface GameScreenProps {
 }
 
 export function GameScreen({ mode, scheme }: GameScreenProps) {
-  const { state, playerProjectiles, flip, restart } = useGame(mode);
+  const { state, playerProjectiles, explosions, flip, restart } = useGame(mode);
   const screenRef = useRef<HTMLElement>(null);
   const [savedHighScore, setSavedHighScore] = useState(() => loadHighScore(mode.id));
   const highScore = Math.max(savedHighScore, state.score);
@@ -48,7 +48,7 @@ export function GameScreen({ mode, scheme }: GameScreenProps) {
       className="relative mx-auto flex h-dvh max-w-2xl flex-col px-3 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] select-none"
     >
       <Hud score={state.score} lives={state.lives} highScore={highScore} />
-      <Playfield enemies={state.enemies} />
+      <Playfield enemies={state.enemies} explosions={explosions} nowMs={state.elapsedMs} />
       <Register value={state.register} scheme={scheme} onFlip={flip} />
       <PlayerProjectileLayer
         game={state}
