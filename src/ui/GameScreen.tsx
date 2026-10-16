@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { GameMode } from '../engine/types';
 import type { KeyboardScheme } from '../input/types';
 import { useKeyboardInput } from '../input/useKeyboardInput';
+import { usePlayKeys } from '../input/usePlayKeys';
 import { loadHighScore, saveHighScore } from '../persistence/highScore';
 import { primaryButton } from './buttonStyles';
 import { PlayerProjectileLayer } from './PlayerProjectileLayer';
@@ -33,14 +34,7 @@ export function GameScreen({ mode, scheme }: GameScreenProps) {
     restart();
   }, [highScore, restart]);
 
-  useEffect(() => {
-    if (!isOver) return;
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Enter') playAgain();
-    }
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOver, playAgain]);
+  usePlayKeys(playAgain, isOver);
 
   return (
     <main
