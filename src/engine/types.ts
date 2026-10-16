@@ -3,9 +3,12 @@ export type Random = () => number;
 export interface GameConfig {
   lives: number;
   destructionDelayMs: number;
+  /** Starting time between spawns. */
   spawnIntervalMs: number;
-  /** Fraction of the playfield an enemy travels per second. */
-  enemySpeed: number;
+  /** Starting time for an enemy to fall the full height of the playfield. */
+  enemyFallMs: number;
+  /** Score at which spawning and falling are twice as fast as at the start; the ramp is linear. */
+  difficultyDoublesAtScore: number;
 }
 
 export interface GameMode {
@@ -26,6 +29,8 @@ export interface Enemy {
   x: number;
   /** Distance travelled, 0 (spawn) to 1 (reached the player). */
   progress: number;
+  /** Fraction of the playfield travelled per second, fixed at spawn. */
+  speed: number;
   matchedAtMs: number | null;
 }
 

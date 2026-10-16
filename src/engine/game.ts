@@ -1,5 +1,5 @@
 import { isZero, withBitFlipped, type BitAddress } from './bytes';
-import type { Enemy, GameMode, GameState, Random } from './types';
+import type { Enemy, GameConfig, GameMode, GameState, Random } from './types';
 
 const SPAWN_MARGIN = 0.1;
 
@@ -17,6 +17,10 @@ export function createGame(mode: GameMode): GameState {
   };
 }
 
+export function difficultyMultiplier(config: GameConfig, score: number): number {
+  return 1 + score / config.difficultyDoublesAtScore;
+}
+
 export function flipBit(state: GameState, address: BitAddress): GameState {
   if (state.status === 'over') return state;
   const flipped = { ...state, register: withBitFlipped(state.register, address) };
@@ -25,11 +29,13 @@ export function flipBit(state: GameState, address: BitAddress): GameState {
 
 export function step(state: GameState, dtMs: number, random: Random): GameState {
   if (state.status === 'over') return state;
-  const distance = (state.mode.config.enemySpeed * dtMs) / 1000;
   const advanced: GameState = {
     ...state,
     elapsedMs: state.elapsedMs + dtMs,
-    enemies: state.enemies.map((enemy) => ({ ...enemy, progress: enemy.progress + distance })),
+    enemies: state.enemies.map((enemy) => ({
+      ...enemy,
+      progress: enemy.progress + (enemy.speed * dtMs) / 1000,
+    })),
   };
   return spawnEnemies(handleArrivals(destroyDueEnemies(advanced)), dtMs, random);
 }
@@ -69,19 +75,22 @@ function handleArrivals(state: GameState): GameState {
 
 function spawnEnemies(state: GameState, dtMs: number, random: Random): GameState {
   if (state.status === 'over') return state;
+  const { config } = state.mode;
+  const interval = config.spawnIntervalMs / difficultyMultiplier(config, state.score);
   let next = { ...state, msUntilNextSpawn: state.msUntilNextSpawn - dtMs };
   while (next.msUntilNextSpawn <= 0) {
     next = {
       ...next,
       enemies: [...next.enemies, createEnemy(next, random)],
       nextEnemyId: next.nextEnemyId + 1,
-      msUntilNextSpawn: next.msUntilNextSpawn + next.mode.config.spawnIntervalMs,
+      msUntilNextSpawn: next.msUntilNextSpawn + interval,
     };
   }
   return next;
 }
 
 function createEnemy(state: GameState, random: Random): Enemy {
+  const { config } = state.mode;
   const target = state.mode.randomTarget(random);
   return {
     id: state.nextEnemyId,
@@ -89,6 +98,7 @@ function createEnemy(state: GameState, random: Random): Enemy {
     label: state.mode.formatLabel(target),
     x: SPAWN_MARGIN + random() * (1 - 2 * SPAWN_MARGIN),
     progress: 0,
+    speed: (1000 / config.enemyFallMs) * difficultyMultiplier(config, state.score),
     matchedAtMs: null,
   };
 }

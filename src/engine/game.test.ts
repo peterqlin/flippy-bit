@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { hex8 } from '../modes/hex8';
-import { createGame, flipBit, step } from './game';
+import { createGame, difficultyMultiplier, flipBit, step } from './game';
 import type { Enemy, GameConfig, GameState } from './types';
 
 const NEVER_SPAWN = Number.POSITIVE_INFINITY;
@@ -17,6 +17,7 @@ function gameWith(enemies: Partial<Enemy>[], config: Partial<GameConfig> = {}): 
       label: '01',
       x: 0.5,
       progress: 0,
+      speed: 0.1,
       matchedAtMs: null,
       ...enemy,
     })),
@@ -91,7 +92,7 @@ describe('destruction', () => {
 
   it('lets a matched enemy reach the player before its delay ends', () => {
     const matched = enter(
-      gameWith([{ progress: 0.99 }], { destructionDelayMs: 1000, enemySpeed: 0.1 }),
+      gameWith([{ progress: 0.99, speed: 0.1 }], { destructionDelayMs: 1000 }),
       0x01,
     );
     const after = step(matched, 200, fixedRandom);
@@ -129,5 +130,34 @@ describe('spawning', () => {
 
     expect(step(state, 0, fixedRandom).enemies).toHaveLength(1);
     expect(step(state, 2500, fixedRandom).enemies).toHaveLength(3);
+  });
+});
+
+describe('difficulty', () => {
+  const config = { ...hex8.config, spawnIntervalMs: 1000, enemyFallMs: 10_000 };
+  const atScore = (score: number) => ({ ...createGame({ ...hex8, config }), score });
+
+  it('doubles at the configured score and ramps linearly', () => {
+    const doubling = { ...config, difficultyDoublesAtScore: 60 };
+
+    expect(difficultyMultiplier(doubling, 0)).toBe(1);
+    expect(difficultyMultiplier(doubling, 30)).toBe(1.5);
+    expect(difficultyMultiplier(doubling, 60)).toBe(2);
+  });
+
+  it('spawns faster enemies as the score rises', () => {
+    const fresh = step(atScore(0), 0, fixedRandom);
+    const doubled = step(atScore(config.difficultyDoublesAtScore), 0, fixedRandom);
+
+    expect(fresh.enemies[0]?.speed).toBeCloseTo(0.1);
+    expect(doubled.enemies[0]?.speed).toBeCloseTo(0.2);
+  });
+
+  it('spawns more often as the score rises', () => {
+    const fresh = step(atScore(0), 2400, fixedRandom);
+    const doubled = step(atScore(config.difficultyDoublesAtScore), 2400, fixedRandom);
+
+    expect(fresh.enemies).toHaveLength(3);
+    expect(doubled.enemies).toHaveLength(5);
   });
 });
