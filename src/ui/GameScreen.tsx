@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useMute } from '../audio/useMute';
 import type { GameMode } from '../engine/types';
 import type { KeyboardScheme } from '../input/types';
 import { useKeyboardInput } from '../input/useKeyboardInput';
@@ -22,6 +23,7 @@ export function GameScreen({ mode, scheme }: GameScreenProps) {
   const [savedHighScore, setSavedHighScore] = useState(() => loadHighScore(mode.id));
   const highScore = Math.max(savedHighScore, state.score);
   const isOver = state.status === 'over';
+  const { muted, toggleMuted } = useMute();
 
   useKeyboardInput(scheme, flip);
 
@@ -41,7 +43,13 @@ export function GameScreen({ mode, scheme }: GameScreenProps) {
       ref={screenRef}
       className="relative mx-auto flex h-dvh max-w-2xl flex-col px-3 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] select-none"
     >
-      <Hud score={state.score} lives={state.lives} highScore={highScore} />
+      <Hud
+        score={state.score}
+        lives={state.lives}
+        highScore={highScore}
+        muted={muted}
+        onToggleMuted={toggleMuted}
+      />
       <Playfield enemies={state.enemies} explosions={explosions} nowMs={state.elapsedMs} />
       <Register value={state.register} scheme={scheme} onFlip={flip} />
       <PlayerProjectileLayer

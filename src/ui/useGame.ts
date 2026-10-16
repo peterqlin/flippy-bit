@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
+import { soundsAfterFlip, soundsAfterStep } from '../audio/gameSounds';
+import { playSoundEffect } from '../audio/soundEffects';
 import type { BitAddress } from '../engine/bytes';
 import { createGame, flipBit, step } from '../engine/game';
 import type { GameMode, GameState } from '../engine/types';
@@ -50,14 +52,20 @@ function createGameStore(mode: GameMode) {
     },
     tick(dtMs: number) {
       const game = step(snapshot.game, dtMs, Math.random);
+      const explosions = explosionsAfterStep(snapshot.explosions, snapshot.game, game, Math.random);
+      soundsAfterStep(snapshot.explosions, explosions).forEach(playSoundEffect);
       update({
         game,
         playerProjectiles: withoutLandedPlayerProjectiles(snapshot.playerProjectiles, game),
-        explosions: explosionsAfterStep(snapshot.explosions, snapshot.game, game, Math.random),
+        explosions,
       });
     },
     flip(address: BitAddress) {
       const game = flipBit(snapshot.game, address);
+      const explosions = explosionsAfterFlip(snapshot.explosions, snapshot.game, game, Math.random);
+      soundsAfterFlip(snapshot.game, address, game, snapshot.explosions, explosions).forEach(
+        playSoundEffect,
+      );
       update({
         game,
         playerProjectiles: playerProjectilesAfterFlip(
@@ -66,7 +74,7 @@ function createGameStore(mode: GameMode) {
           address,
           game,
         ),
-        explosions: explosionsAfterFlip(snapshot.explosions, snapshot.game, game, Math.random),
+        explosions,
       });
     },
     restart: () => update(startingSnapshot(mode)),
