@@ -1,6 +1,6 @@
 export type SoundEffect = 'bitSet' | 'bitCleared' | 'explosion';
 
-const MASTER_VOLUME = 0.5;
+const MASTER_VOLUME = 1.25;
 const SILENT = 0.0001;
 
 let audio: { context: AudioContext; output: GainNode; noise: AudioBuffer } | null = null;
