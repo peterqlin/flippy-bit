@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { GameMode } from '../engine/types';
 import type { KeyboardScheme } from '../input/types';
 import { useKeyboardInput } from '../input/useKeyboardInput';
+import { usePlayKeys } from '../input/usePlayKeys';
 import { loadHighScore, saveHighScore } from '../persistence/highScore';
 import { primaryButton } from './buttonStyles';
 import { PlayerProjectileLayer } from './PlayerProjectileLayer';
@@ -16,7 +17,7 @@ interface GameScreenProps {
 }
 
 export function GameScreen({ mode, scheme }: GameScreenProps) {
-  const { state, playerProjectiles, flip, restart } = useGame(mode);
+  const { state, playerProjectiles, explosions, flip, restart } = useGame(mode);
   const screenRef = useRef<HTMLElement>(null);
   const [savedHighScore, setSavedHighScore] = useState(() => loadHighScore(mode.id));
   const highScore = Math.max(savedHighScore, state.score);
@@ -33,14 +34,7 @@ export function GameScreen({ mode, scheme }: GameScreenProps) {
     restart();
   }, [highScore, restart]);
 
-  useEffect(() => {
-    if (!isOver) return;
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Enter') playAgain();
-    }
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOver, playAgain]);
+  usePlayKeys(playAgain, isOver);
 
   return (
     <main
@@ -48,7 +42,7 @@ export function GameScreen({ mode, scheme }: GameScreenProps) {
       className="relative mx-auto flex h-dvh max-w-2xl flex-col px-3 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] select-none"
     >
       <Hud score={state.score} lives={state.lives} highScore={highScore} />
-      <Playfield enemies={state.enemies} />
+      <Playfield enemies={state.enemies} explosions={explosions} nowMs={state.elapsedMs} />
       <Register value={state.register} scheme={scheme} onFlip={flip} />
       <PlayerProjectileLayer
         game={state}
