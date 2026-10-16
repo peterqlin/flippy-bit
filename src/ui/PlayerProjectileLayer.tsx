@@ -1,9 +1,14 @@
 import { useEffect, useState, type RefObject } from 'react';
 import type { GameState } from '../engine/types';
-import { circleHeight, projectilePosition, type Circles, type Point } from './circles';
+import {
+  loadedProjectileHeight,
+  firedProjectilePosition,
+  type PlayerProjectiles,
+  type Point,
+} from './playerProjectiles';
 
 const RISE_PX = 24;
-const CIRCLE_SIZE_PX = 10;
+const PROJECTILE_SIZE_PX = 10;
 
 interface Layout {
   playfield: { left: number; top: number; width: number; height: number };
@@ -49,58 +54,65 @@ function useLayout(containerRef: RefObject<HTMLElement | null>): Layout | null {
   return layout;
 }
 
-interface CircleLayerProps {
+interface PlayerProjectileLayerProps {
   game: GameState;
-  circles: Circles;
+  playerProjectiles: PlayerProjectiles;
   containerRef: RefObject<HTMLElement | null>;
 }
 
-export function CircleLayer({ game, circles, containerRef }: CircleLayerProps) {
+export function PlayerProjectileLayer({
+  game,
+  playerProjectiles,
+  containerRef,
+}: PlayerProjectileLayerProps) {
   const layout = useLayout(containerRef);
   if (!layout) return null;
   const now = game.elapsedMs;
-  const dots: { key: string; at: Point }[] = [];
+  const onScreen: { key: string; at: Point }[] = [];
 
-  circles.bits.forEach((row, byte) =>
-    row.forEach((circle, bit) => {
-      const height = circleHeight(circle, now);
+  playerProjectiles.loaded.forEach((row, byte) =>
+    row.forEach((projectile, bit) => {
+      const height = loadedProjectileHeight(projectile, now);
       const slot = layout.slots.get(bitKey(byte, bit));
       if (height > 0 && slot) {
-        dots.push({ key: `bit-${byte}-${bit}`, at: { x: slot.x, y: slot.y - height * RISE_PX } });
+        onScreen.push({
+          key: `loaded-${byte}-${bit}`,
+          at: { x: slot.x, y: slot.y - height * RISE_PX },
+        });
       }
     }),
   );
 
-  for (const projectile of circles.projectiles) {
+  for (const projectile of playerProjectiles.fired) {
     const enemy = game.enemies.find(({ id }) => id === projectile.enemyId);
     const slot = layout.slots.get(bitKey(projectile.address.byte, projectile.address.bit));
     if (!enemy || !slot) continue;
     const { playfield } = layout;
     const enemyX = playfield.left + enemy.x * playfield.width;
     const progressAtHit = enemy.progress + (enemy.speed * (projectile.hitAtMs - now)) / 1000;
-    const at = projectilePosition(
+    const at = firedProjectilePosition(
       projectile,
       now,
       { x: slot.x, y: slot.y - projectile.startHeight * RISE_PX },
       { x: enemyX, y: slot.y - RISE_PX },
       { x: enemyX, y: playfield.top + Math.min(progressAtHit, 1) * playfield.height },
     );
-    dots.push({
-      key: `shot-${projectile.enemyId}-${projectile.address.byte}-${projectile.address.bit}`,
+    onScreen.push({
+      key: `fired-${projectile.enemyId}-${projectile.address.byte}-${projectile.address.bit}`,
       at,
     });
   }
 
   return (
     <div className="pointer-events-none absolute inset-0" aria-hidden>
-      {dots.map(({ key, at }) => (
+      {onScreen.map(({ key, at }) => (
         <div
           key={key}
           className="absolute top-0 left-0 rounded-full bg-accent"
           style={{
-            width: CIRCLE_SIZE_PX,
-            height: CIRCLE_SIZE_PX,
-            transform: `translate(${at.x - CIRCLE_SIZE_PX / 2}px, ${at.y - CIRCLE_SIZE_PX / 2}px)`,
+            width: PROJECTILE_SIZE_PX,
+            height: PROJECTILE_SIZE_PX,
+            transform: `translate(${at.x - PROJECTILE_SIZE_PX / 2}px, ${at.y - PROJECTILE_SIZE_PX / 2}px)`,
           }}
         />
       ))}

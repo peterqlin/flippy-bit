@@ -10,15 +10,18 @@ export interface Point {
   y: number;
 }
 
-/** The circle above one bit. Height runs from 0 (inside the slot) to 1 (fully risen). */
-export interface BitCircle {
-  on: boolean;
+/**
+ * A player projectile sitting over a bit. It rises out of the bit's slot while the bit is set and
+ * sinks back when it's cleared. Height runs from 0 (inside the slot) to 1 (fully risen).
+ */
+export interface LoadedPlayerProjectile {
+  raised: boolean;
   changedAtMs: number;
   heightAtChange: number;
 }
 
-/** A risen circle that was consumed by a match and is now flying at its enemy. */
-export interface Projectile {
+/** A loaded projectile that was launched by a match and is flying at the matched enemy. */
+export interface FiredPlayerProjectile {
   enemyId: number;
   address: BitAddress;
   startHeight: number;
@@ -26,84 +29,88 @@ export interface Projectile {
   hitAtMs: number;
 }
 
-export interface Circles {
-  bits: BitCircle[][];
-  projectiles: Projectile[];
+export interface PlayerProjectiles {
+  /** Indexed by `[byte][bit]`, one per register bit. */
+  loaded: LoadedPlayerProjectile[][];
+  fired: FiredPlayerProjectile[];
 }
 
-const AT_REST: BitCircle = { on: false, changedAtMs: 0, heightAtChange: 0 };
+const IN_SLOT: LoadedPlayerProjectile = { raised: false, changedAtMs: 0, heightAtChange: 0 };
 
-export function createCircles(registerBytes: number): Circles {
+export function createPlayerProjectiles(registerBytes: number): PlayerProjectiles {
   return {
-    bits: Array.from({ length: registerBytes }, () => Array(BITS_PER_BYTE).fill(AT_REST)),
-    projectiles: [],
+    loaded: Array.from({ length: registerBytes }, () => Array(BITS_PER_BYTE).fill(IN_SLOT)),
+    fired: [],
   };
 }
 
 /** Rising decelerates to a stop; sinking accelerates from a stop into the slot. */
-export function circleHeight(circle: BitCircle, nowMs: number): number {
-  const t = progressBetween(circle.changedAtMs, circle.changedAtMs + RISE_MS, nowMs);
-  const from = circle.heightAtChange;
-  return circle.on ? from + (1 - from) * (1 - (1 - t) ** 2) : from * (1 - t ** 2);
+export function loadedProjectileHeight(loaded: LoadedPlayerProjectile, nowMs: number): number {
+  const t = progressBetween(loaded.changedAtMs, loaded.changedAtMs + RISE_MS, nowMs);
+  const from = loaded.heightAtChange;
+  return loaded.raised ? from + (1 - from) * (1 - (1 - t) ** 2) : from * (1 - t ** 2);
 }
 
-export function afterFlip(
-  circles: Circles,
+export function playerProjectilesAfterFlip(
+  projectiles: PlayerProjectiles,
   before: GameState,
   address: BitAddress,
   after: GameState,
-): Circles {
-  if (after === before) return circles;
+): PlayerProjectiles {
+  if (after === before) return projectiles;
   const now = after.elapsedMs;
-  const bits = circles.bits.map((row) => row.slice());
-  const flipped = bits[address.byte]![address.bit]!;
-  bits[address.byte]![address.bit] = {
-    on: !flipped.on,
+  const loaded = projectiles.loaded.map((row) => row.slice());
+  const flipped = loaded[address.byte]![address.bit]!;
+  loaded[address.byte]![address.bit] = {
+    raised: !flipped.raised,
     changedAtMs: now,
-    heightAtChange: circleHeight(flipped, now),
+    heightAtChange: loadedProjectileHeight(flipped, now),
   };
 
   const flippedRegister = withBitFlipped(before.register, address);
   const wasMatch = after.register.some((value, byte) => value !== flippedRegister[byte]);
-  if (!wasMatch) return { ...circles, bits };
+  if (!wasMatch) return { ...projectiles, loaded };
 
   const matchedEnemy = after.enemies.find(
     (enemy) =>
       enemy.matchedAtMs === now &&
       before.enemies.find((previous) => previous.id === enemy.id)?.matchedAtMs === null,
   );
-  const launched: Projectile[] = [];
-  bits.forEach((row, byte) =>
-    row.forEach((circle, bit) => {
+  const launched: FiredPlayerProjectile[] = [];
+  loaded.forEach((row, byte) =>
+    row.forEach((projectile, bit) => {
       if (!isBitSet(flippedRegister, { byte, bit })) return;
       if (matchedEnemy) {
         launched.push({
           enemyId: matchedEnemy.id,
           address: { byte, bit },
-          startHeight: circleHeight(circle, now),
+          startHeight: loadedProjectileHeight(projectile, now),
           matchedAtMs: now,
           hitAtMs: now + after.mode.config.destructionDelayMs,
         });
       }
-      row[bit] = { on: false, changedAtMs: now, heightAtChange: 0 };
+      row[bit] = { raised: false, changedAtMs: now, heightAtChange: 0 };
     }),
   );
-  return { bits, projectiles: [...circles.projectiles, ...launched] };
+  return { loaded, fired: [...projectiles.fired, ...launched] };
 }
 
-export function withoutLandedProjectiles(circles: Circles, state: GameState): Circles {
-  const projectiles = circles.projectiles.filter((projectile) =>
+export function withoutLandedPlayerProjectiles(
+  projectiles: PlayerProjectiles,
+  state: GameState,
+): PlayerProjectiles {
+  const fired = projectiles.fired.filter((projectile) =>
     state.enemies.some((enemy) => enemy.id === projectile.enemyId),
   );
-  return projectiles.length === circles.projectiles.length ? circles : { ...circles, projectiles };
+  return fired.length === projectiles.fired.length ? projectiles : { ...projectiles, fired };
 }
 
 /**
  * Converges from `start` to `aligned` (decelerating, all projectiles of a match arriving together),
  * then flies straight to `target` from a standstill with constant acceleration, landing at `hitAtMs`.
  */
-export function projectilePosition(
-  projectile: Projectile,
+export function firedProjectilePosition(
+  projectile: FiredPlayerProjectile,
   nowMs: number,
   start: Point,
   aligned: Point,

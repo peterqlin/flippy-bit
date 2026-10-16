@@ -1,6 +1,6 @@
 import { BITS_PER_BYTE, isBitSet, toHex, type BitAddress } from '../engine/bytes';
 import type { KeyboardScheme } from '../input/types';
-import { bitKey } from './CircleLayer';
+import { bitKey } from './PlayerProjectileLayer';
 
 interface RegisterProps {
   value: Uint8Array;

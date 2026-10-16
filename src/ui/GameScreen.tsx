@@ -4,7 +4,7 @@ import type { KeyboardScheme } from '../input/types';
 import { useKeyboardInput } from '../input/useKeyboardInput';
 import { loadHighScore, saveHighScore } from '../persistence/highScore';
 import { primaryButton } from './buttonStyles';
-import { CircleLayer } from './CircleLayer';
+import { PlayerProjectileLayer } from './PlayerProjectileLayer';
 import { Hud } from './Hud';
 import { Playfield } from './Playfield';
 import { Register } from './Register';
@@ -16,7 +16,7 @@ interface GameScreenProps {
 }
 
 export function GameScreen({ mode, scheme }: GameScreenProps) {
-  const { state, circles, flip, restart } = useGame(mode);
+  const { state, playerProjectiles, flip, restart } = useGame(mode);
   const screenRef = useRef<HTMLElement>(null);
   const [savedHighScore, setSavedHighScore] = useState(() => loadHighScore(mode.id));
   const highScore = Math.max(savedHighScore, state.score);
@@ -50,7 +50,11 @@ export function GameScreen({ mode, scheme }: GameScreenProps) {
       <Hud score={state.score} lives={state.lives} highScore={highScore} />
       <Playfield enemies={state.enemies} />
       <Register value={state.register} scheme={scheme} onFlip={flip} />
-      <CircleLayer game={state} circles={circles} containerRef={screenRef} />
+      <PlayerProjectileLayer
+        game={state}
+        playerProjectiles={playerProjectiles}
+        containerRef={screenRef}
+      />
       {isOver && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-bg/85">
           <h2 className="text-3xl font-bold text-danger">Game over</h2>
