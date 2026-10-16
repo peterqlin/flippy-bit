@@ -4,8 +4,6 @@ export function Playfield({ enemies }: { enemies: Enemy[] }) {
   return (
     <div data-playfield className="relative flex-1 overflow-hidden border-b-2 border-danger">
       {enemies.map((enemy) => (
-        // Falling via a transform on a playfield-sized layer, rather than animating `top`, moves the
-        // already-painted enemy each frame instead of repainting it, which left its edges smeared.
         <div
           key={enemy.id}
           className="pointer-events-none absolute inset-0 will-change-transform"
