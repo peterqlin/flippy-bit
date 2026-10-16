@@ -4,6 +4,11 @@ const MASTER_VOLUME = 0.5;
 const SILENT = 0.0001;
 
 let audio: { context: AudioContext; output: GainNode; noise: AudioBuffer } | null = null;
+let muted = false;
+
+export function setSoundEffectsMuted(isMuted: boolean) {
+  muted = isMuted;
+}
 
 /** Created on first use, which is always a player's key press or tap, so browsers allow it to play. */
 function audioOutput() {
@@ -20,6 +25,7 @@ function audioOutput() {
 }
 
 export function playSoundEffect(effect: SoundEffect) {
+  if (muted) return;
   const output = audioOutput();
   if (!output) return;
   const { context } = output;
