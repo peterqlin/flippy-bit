@@ -1,5 +1,6 @@
 import { BITS_PER_BYTE, isBitSet, toHex, type BitAddress } from '../engine/bytes';
 import type { KeyboardScheme } from '../input/types';
+import { bitKey } from './PlayerProjectileLayer';
 
 interface RegisterProps {
   value: Uint8Array;
@@ -22,6 +23,7 @@ export function Register({ value, scheme, onFlip }: RegisterProps) {
             return (
               <button
                 key={address.bit}
+                data-bit={bitKey(address.byte, address.bit)}
                 type="button"
                 className={`flex min-h-14 flex-col items-center justify-center rounded-lg border ${on ? 'border-accent bg-accent/20' : 'border-line bg-panel'}`}
                 aria-pressed={on}

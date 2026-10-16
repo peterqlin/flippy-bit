@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { GameMode } from '../engine/types';
 import type { KeyboardScheme } from '../input/types';
 import { useKeyboardInput } from '../input/useKeyboardInput';
 import { loadHighScore, saveHighScore } from '../persistence/highScore';
 import { primaryButton } from './buttonStyles';
+import { PlayerProjectileLayer } from './PlayerProjectileLayer';
 import { Hud } from './Hud';
 import { Playfield } from './Playfield';
 import { Register } from './Register';
@@ -15,7 +16,8 @@ interface GameScreenProps {
 }
 
 export function GameScreen({ mode, scheme }: GameScreenProps) {
-  const { state, flip, restart } = useGame(mode);
+  const { state, playerProjectiles, flip, restart } = useGame(mode);
+  const screenRef = useRef<HTMLElement>(null);
   const [savedHighScore, setSavedHighScore] = useState(() => loadHighScore(mode.id));
   const highScore = Math.max(savedHighScore, state.score);
   const isOver = state.status === 'over';
@@ -41,10 +43,18 @@ export function GameScreen({ mode, scheme }: GameScreenProps) {
   }, [isOver, playAgain]);
 
   return (
-    <main className="relative mx-auto flex h-dvh max-w-2xl flex-col px-3 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] select-none">
+    <main
+      ref={screenRef}
+      className="relative mx-auto flex h-dvh max-w-2xl flex-col px-3 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] select-none"
+    >
       <Hud score={state.score} lives={state.lives} highScore={highScore} />
       <Playfield enemies={state.enemies} />
       <Register value={state.register} scheme={scheme} onFlip={flip} />
+      <PlayerProjectileLayer
+        game={state}
+        playerProjectiles={playerProjectiles}
+        containerRef={screenRef}
+      />
       {isOver && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-bg/85">
           <h2 className="text-3xl font-bold text-danger">Game over</h2>
