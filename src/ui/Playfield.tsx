@@ -2,7 +2,7 @@ import type { Enemy } from '../engine/types';
 
 export function Playfield({ enemies }: { enemies: Enemy[] }) {
   return (
-    <div className="relative flex-1 overflow-hidden border-b-2 border-danger">
+    <div data-playfield className="relative flex-1 overflow-hidden border-b-2 border-danger">
       {enemies.map((enemy) => (
         <div
           key={enemy.id}
