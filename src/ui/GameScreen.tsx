@@ -4,7 +4,8 @@ import type { GameMode } from '../engine/types';
 import type { KeyboardScheme } from '../input/types';
 import { useKeyboardInput } from '../input/useKeyboardInput';
 import { usePlayKeys } from '../input/usePlayKeys';
-import type { DifficultyId } from '../modes/difficulties';
+import { difficulties, withDifficulty, type DifficultyId } from '../modes/difficulties';
+import { loadDifficulty, saveDifficulty } from '../persistence/difficulty';
 import { loadHighScore, saveHighScore } from '../persistence/highScore';
 import { PlayerProjectileLayer } from './PlayerProjectileLayer';
 import { Hud } from './Hud';
@@ -21,20 +22,28 @@ interface GameScreenProps {
 export function GameScreen({ mode, scheme }: GameScreenProps) {
   const { state, playerProjectiles, explosions, flip, start } = useGame(mode);
   const screenRef = useRef<HTMLElement>(null);
-  const [savedHighScore, setSavedHighScore] = useState(() => loadHighScore(mode.id));
-  const highScore = Math.max(savedHighScore, state.score);
-  const [difficulty, setDifficulty] = useState<DifficultyId>('advanced');
+  const [difficulty, setDifficulty] = useState(loadDifficulty);
+  const [runDifficulty, setRunDifficulty] = useState(difficulty);
+  const [savedHighScores, setSavedHighScores] = useState(() => loadHighScores(mode.id));
+  const runHighScore = Math.max(savedHighScores[runDifficulty], state.score);
+  const highScore = difficulty === runDifficulty ? runHighScore : savedHighScores[difficulty];
   const isPlaying = state.status === 'playing';
   const isOver = state.status === 'over';
 
   useEffect(() => {
-    if (isOver) saveHighScore(mode.id, highScore);
-  }, [isOver, highScore, mode.id]);
+    if (isOver) saveHighScore(mode.id, runDifficulty, runHighScore);
+  }, [isOver, runHighScore, runDifficulty, mode.id]);
+
+  const selectDifficulty = useCallback((id: DifficultyId) => {
+    setDifficulty(id);
+    saveDifficulty(id);
+  }, []);
 
   const begin = useCallback(() => {
-    setSavedHighScore(highScore);
-    start();
-  }, [highScore, start]);
+    setSavedHighScores((scores) => ({ ...scores, [runDifficulty]: runHighScore }));
+    setRunDifficulty(difficulty);
+    start(withDifficulty(mode, difficulty));
+  }, [runDifficulty, runHighScore, difficulty, start, mode]);
 
   const flipOrBegin = useCallback(
     (address: BitAddress) => {
@@ -69,10 +78,16 @@ export function GameScreen({ mode, scheme }: GameScreenProps) {
           <StartMenu
             isGameOver={isOver}
             difficulty={difficulty}
-            onSelectDifficulty={setDifficulty}
+            onSelectDifficulty={selectDifficulty}
           />
         </div>
       )}
     </main>
   );
+}
+
+function loadHighScores(modeId: string): Record<DifficultyId, number> {
+  return Object.fromEntries(
+    difficulties.map(({ id }) => [id, loadHighScore(modeId, id)]),
+  ) as Record<DifficultyId, number>;
 }
