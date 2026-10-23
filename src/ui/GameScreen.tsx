@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useMute } from '../audio/useMute';
-import type { BitAddress } from '../engine/bytes';
+import { toHex, type BitAddress } from '../engine/bytes';
 import type { GameMode } from '../engine/types';
 import type { KeyboardScheme } from '../input/types';
 import { useKeyboardInput } from '../input/useKeyboardInput';
@@ -27,7 +26,6 @@ export function GameScreen({ mode, scheme }: GameScreenProps) {
   const [difficulty, setDifficulty] = useState<DifficultyId>('advanced');
   const isPlaying = state.status === 'playing';
   const isOver = state.status === 'over';
-  const { muted, toggleMuted } = useMute();
 
   useEffect(() => {
     if (isOver) saveHighScore(mode.id, highScore);
@@ -54,15 +52,13 @@ export function GameScreen({ mode, scheme }: GameScreenProps) {
       ref={screenRef}
       className="relative mx-auto flex h-dvh max-w-2xl flex-col px-3 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] select-none"
     >
-      <Hud
-        score={state.score}
-        lives={state.lives}
-        highScore={highScore}
-        muted={muted}
-        onToggleMuted={toggleMuted}
-      />
+      <Hud highScore={highScore} />
       <Playfield enemies={state.enemies} explosions={explosions} nowMs={state.elapsedMs} />
-      <Register value={state.register} scheme={scheme} onFlip={flipOrBegin} />
+      <Register value={state.register} onFlip={flipOrBegin} />
+      <footer className="flex items-center justify-between px-1 py-3 text-2xl">
+        <span>{state.score}</span>
+        <span className="text-accent">{toHex(state.register)}</span>
+      </footer>
       <PlayerProjectileLayer
         game={state}
         playerProjectiles={playerProjectiles}
@@ -71,10 +67,9 @@ export function GameScreen({ mode, scheme }: GameScreenProps) {
       {!isPlaying && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-4">
           <StartMenu
-            finalScore={isOver ? state.score : null}
+            isGameOver={isOver}
             difficulty={difficulty}
             onSelectDifficulty={setDifficulty}
-            onStart={begin}
           />
         </div>
       )}

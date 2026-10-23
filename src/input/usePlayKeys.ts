@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 
 const PLAY_KEY = ' ';
 
-/** Starts a game on Space while `enabled`, in place of clicking the start button. */
+/** Starts a game on Space while `enabled`. */
 export function usePlayKeys(onPlay: () => void, enabled: boolean) {
   useEffect(() => {
     if (!enabled) return;
