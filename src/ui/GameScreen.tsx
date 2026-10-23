@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toHex, type BitAddress } from '../engine/bytes';
 import type { GameMode } from '../engine/types';
 import type { KeyboardScheme } from '../input/types';
@@ -7,6 +7,7 @@ import { usePlayKeys } from '../input/usePlayKeys';
 import { difficulties, withDifficulty, type DifficultyId } from '../modes/difficulties';
 import { loadDifficulty, saveDifficulty } from '../persistence/difficulty';
 import { loadHighScore, saveHighScore } from '../persistence/highScore';
+import { summarizeRound } from '../results/roundResults';
 import { PlayerProjectileLayer } from './PlayerProjectileLayer';
 import { Hud } from './Hud';
 import { Playfield } from './Playfield';
@@ -14,13 +15,16 @@ import { Register } from './Register';
 import { StartMenu } from './StartMenu';
 import { useGame } from './useGame';
 
+/** Keeps bit presses mashed at the moment of death from skipping the results. */
+const RESULTS_LOCKOUT_MS = 1000;
+
 interface GameScreenProps {
   mode: GameMode;
   scheme: KeyboardScheme;
 }
 
 export function GameScreen({ mode, scheme }: GameScreenProps) {
-  const { state, playerProjectiles, explosions, flip, start } = useGame(mode);
+  const { state, playerProjectiles, explosions, roundRecord, flip, start } = useGame(mode);
   const screenRef = useRef<HTMLElement>(null);
   const [difficulty, setDifficulty] = useState(loadDifficulty);
   const [runDifficulty, setRunDifficulty] = useState(difficulty);
@@ -30,6 +34,16 @@ export function GameScreen({ mode, scheme }: GameScreenProps) {
   const isOver = state.status === 'over';
   const highScore =
     isOver && difficulty === runDifficulty ? runHighScore : savedHighScores[difficulty];
+
+  const results = useMemo(
+    () => (isOver ? summarizeRound(roundRecord, state.elapsedMs) : null),
+    [isOver, roundRecord, state.elapsedMs],
+  );
+  const gameOverAtRef = useRef(Number.NEGATIVE_INFINITY);
+
+  useEffect(() => {
+    if (isOver) gameOverAtRef.current = performance.now();
+  }, [isOver]);
 
   useEffect(() => {
     if (isOver) saveHighScore(mode.id, runDifficulty, runHighScore);
@@ -48,10 +62,11 @@ export function GameScreen({ mode, scheme }: GameScreenProps) {
 
   const flipOrBegin = useCallback(
     (address: BitAddress) => {
+      if (isOver && performance.now() - gameOverAtRef.current < RESULTS_LOCKOUT_MS) return;
       if (!isPlaying) begin();
       flip(address);
     },
-    [isPlaying, begin, flip],
+    [isOver, isPlaying, begin, flip],
   );
 
   useKeyboardInput(scheme, flipOrBegin);
@@ -77,7 +92,7 @@ export function GameScreen({ mode, scheme }: GameScreenProps) {
       {!isPlaying && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-4">
           <StartMenu
-            isGameOver={isOver}
+            results={results}
             difficulty={difficulty}
             onSelectDifficulty={selectDifficulty}
           />

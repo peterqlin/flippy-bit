@@ -4,6 +4,7 @@ import { playSoundEffect } from '../audio/soundEffects';
 import type { BitAddress } from '../engine/bytes';
 import { createGame, flipBit, startGame, step } from '../engine/game';
 import type { GameMode, GameState } from '../engine/types';
+import { createRoundRecord, roundRecordAfterFlip, type RoundRecord } from '../results/roundRecord';
 import { explosionsAfterFlip, explosionsAfterStep, type Explosion } from './explosions';
 import {
   playerProjectilesAfterFlip,
@@ -19,6 +20,7 @@ interface Snapshot {
   game: GameState;
   playerProjectiles: PlayerProjectiles;
   explosions: Explosion[];
+  roundRecord: RoundRecord;
 }
 
 function startingSnapshot(mode: GameMode): Snapshot {
@@ -26,6 +28,7 @@ function startingSnapshot(mode: GameMode): Snapshot {
     game: createGame(mode),
     playerProjectiles: createPlayerProjectiles(mode.registerBytes),
     explosions: [],
+    roundRecord: createRoundRecord(),
   };
 }
 
@@ -37,7 +40,8 @@ function createGameStore(mode: GameMode) {
     if (
       next.game === snapshot.game &&
       next.playerProjectiles === snapshot.playerProjectiles &&
-      next.explosions === snapshot.explosions
+      next.explosions === snapshot.explosions &&
+      next.roundRecord === snapshot.roundRecord
     )
       return;
     snapshot = next;
@@ -55,6 +59,7 @@ function createGameStore(mode: GameMode) {
       const explosions = explosionsAfterStep(snapshot.explosions, snapshot.game, game, Math.random);
       soundsAfterStep(snapshot.explosions, explosions).forEach(playSoundEffect);
       update({
+        ...snapshot,
         game,
         playerProjectiles: withoutLandedPlayerProjectiles(snapshot.playerProjectiles, game),
         explosions,
@@ -75,6 +80,7 @@ function createGameStore(mode: GameMode) {
           game,
         ),
         explosions,
+        roundRecord: roundRecordAfterFlip(snapshot.roundRecord, snapshot.game, address, game),
       });
     },
     start(mode: GameMode) {
@@ -86,7 +92,7 @@ function createGameStore(mode: GameMode) {
 
 export function useGame(mode: GameMode) {
   const [store] = useState(() => createGameStore(mode));
-  const { game, playerProjectiles, explosions } = useSyncExternalStore(
+  const { game, playerProjectiles, explosions, roundRecord } = useSyncExternalStore(
     store.subscribe,
     store.getSnapshot,
   );
@@ -105,5 +111,5 @@ export function useGame(mode: GameMode) {
 
   const flip = useCallback((address: BitAddress) => store.flip(address), [store]);
 
-  return { state: game, playerProjectiles, explosions, flip, start: store.start };
+  return { state: game, playerProjectiles, explosions, roundRecord, flip, start: store.start };
 }
