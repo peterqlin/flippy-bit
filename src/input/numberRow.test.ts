@@ -11,9 +11,4 @@ describe('numberRow', () => {
     expect(numberRow.addressForKey('9')).toBeNull();
     expect(numberRow.addressForKey('a')).toBeNull();
   });
-
-  it('round-trips addresses back to keys', () => {
-    expect(numberRow.keyForAddress({ byte: 0, bit: 7 })).toBe('1');
-    expect(numberRow.keyForAddress({ byte: 1, bit: 7 })).toBeNull();
-  });
 });

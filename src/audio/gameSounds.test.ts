@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createGame, flipBit } from '../engine/game';
+import { createGame, startGame, flipBit } from '../engine/game';
 import type { GameState } from '../engine/types';
 import { hex8 } from '../modes/hex8';
 import type { Explosion } from '../ui/explosions';
@@ -22,7 +22,7 @@ const explosion: Explosion = {
 
 describe('soundsAfterFlip', () => {
   it('plays the set sound when a bit turns on and the cleared sound when it turns off', () => {
-    const game = createGame(hex8);
+    const game = startGame(createGame(hex8));
 
     expect(flipLowestBit(game)).toEqual(['bitSet']);
     expect(flipLowestBit(flipBit(game, lowestBit))).toEqual(['bitCleared']);
@@ -35,7 +35,10 @@ describe('soundsAfterFlip', () => {
   });
 
   it('adds an explosion for an instant kill', () => {
-    expect(flipLowestBit(createGame(hex8), [explosion])).toEqual(['bitSet', 'explosion']);
+    expect(flipLowestBit(startGame(createGame(hex8)), [explosion])).toEqual([
+      'bitSet',
+      'explosion',
+    ]);
   });
 });
 

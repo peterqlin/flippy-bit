@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { hex8 } from '../modes/hex8';
-import { createGame, difficultyMultiplier, flipBit, step } from './game';
+import { createGame, startGame, difficultyMultiplier, flipBit, step } from './game';
 import type { Enemy, GameConfig, GameState } from './types';
 
 const NEVER_SPAWN = Number.POSITIVE_INFINITY;
@@ -9,7 +9,7 @@ const fixedRandom = () => 0.5;
 function gameWith(enemies: Partial<Enemy>[], config: Partial<GameConfig> = {}): GameState {
   const mode = { ...hex8, config: { ...hex8.config, spawnIntervalMs: NEVER_SPAWN, ...config } };
   return {
-    ...createGame(mode),
+    ...startGame(createGame(mode)),
     msUntilNextSpawn: NEVER_SPAWN,
     enemies: enemies.map((enemy, id) => ({
       id,
@@ -124,9 +124,24 @@ describe('lives', () => {
   });
 });
 
+describe('starting', () => {
+  it('holds still and ignores input until started', () => {
+    const ready = createGame(hex8);
+
+    expect(step(ready, 1000, fixedRandom)).toBe(ready);
+    expect(flipBit(ready, { byte: 0, bit: 0 })).toBe(ready);
+  });
+
+  it('starts playing from ready', () => {
+    expect(startGame(createGame(hex8)).status).toBe('playing');
+  });
+});
+
 describe('spawning', () => {
   it('spawns once per interval', () => {
-    const state = createGame({ ...hex8, config: { ...hex8.config, spawnIntervalMs: 1000 } });
+    const state = startGame(
+      createGame({ ...hex8, config: { ...hex8.config, spawnIntervalMs: 1000 } }),
+    );
 
     expect(step(state, 0, fixedRandom).enemies).toHaveLength(1);
     expect(step(state, 2500, fixedRandom).enemies).toHaveLength(3);
@@ -135,7 +150,7 @@ describe('spawning', () => {
 
 describe('difficulty', () => {
   const config = { ...hex8.config, spawnIntervalMs: 1000, enemyFallMs: 10_000 };
-  const atScore = (score: number) => ({ ...createGame({ ...hex8, config }), score });
+  const atScore = (score: number) => ({ ...startGame(createGame({ ...hex8, config })), score });
 
   it('doubles at the configured score and ramps linearly', () => {
     const doubling = { ...config, difficultyDoublesAtScore: 60 };

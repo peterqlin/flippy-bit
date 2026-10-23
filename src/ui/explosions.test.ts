@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createGame, flipBit, step } from '../engine/game';
+import { createGame, startGame, flipBit, step } from '../engine/game';
 import type { Enemy, GameState } from '../engine/types';
 import { hex8 } from '../modes/hex8';
 import {
@@ -18,7 +18,7 @@ function gameWith(enemies: Partial<Enemy>[], destructionDelayMs = 400): GameStat
     config: { ...hex8.config, destructionDelayMs, spawnIntervalMs: Infinity },
   };
   return {
-    ...createGame(mode),
+    ...startGame(createGame(mode)),
     msUntilNextSpawn: Infinity,
     enemies: enemies.map((enemy, id) => ({
       id,

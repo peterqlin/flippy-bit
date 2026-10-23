@@ -10,7 +10,4 @@ export const numberRow: KeyboardScheme = {
     const position = KEYS_MSB_FIRST.indexOf(key);
     return position === -1 ? null : { byte: 0, bit: BITS_PER_BYTE - 1 - position };
   },
-  keyForAddress({ byte, bit }) {
-    return byte === 0 ? (KEYS_MSB_FIRST[BITS_PER_BYTE - 1 - bit] ?? null) : null;
-  },
 };
