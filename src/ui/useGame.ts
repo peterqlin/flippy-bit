@@ -77,7 +77,7 @@ function createGameStore(mode: GameMode) {
         explosions,
       });
     },
-    start() {
+    start(mode: GameMode) {
       const fresh = startingSnapshot(mode);
       update({ ...fresh, game: startGame(fresh.game) });
     },
