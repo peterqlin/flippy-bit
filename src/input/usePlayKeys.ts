@@ -1,13 +1,13 @@
 import { useEffect } from 'react';
 
-const PLAY_KEYS = new Set(['Enter', ' ']);
+const PLAY_KEY = ' ';
 
-/** Starts a game on Enter or Space while `enabled`, in place of clicking the screen's play button. */
+/** Starts a game on Space while `enabled`, in place of clicking the start button. */
 export function usePlayKeys(onPlay: () => void, enabled: boolean) {
   useEffect(() => {
     if (!enabled) return;
     function handleKeyDown(event: KeyboardEvent) {
-      if (!PLAY_KEYS.has(event.key)) return;
+      if (event.key !== PLAY_KEY) return;
       event.preventDefault();
       onPlay();
     }

@@ -1,15 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useMute } from '../audio/useMute';
+import type { BitAddress } from '../engine/bytes';
 import type { GameMode } from '../engine/types';
 import type { KeyboardScheme } from '../input/types';
 import { useKeyboardInput } from '../input/useKeyboardInput';
 import { usePlayKeys } from '../input/usePlayKeys';
+import type { DifficultyId } from '../modes/difficulties';
 import { loadHighScore, saveHighScore } from '../persistence/highScore';
-import { primaryButton } from './buttonStyles';
 import { PlayerProjectileLayer } from './PlayerProjectileLayer';
 import { Hud } from './Hud';
 import { Playfield } from './Playfield';
 import { Register } from './Register';
+import { StartMenu } from './StartMenu';
 import { useGame } from './useGame';
 
 interface GameScreenProps {
@@ -18,25 +20,34 @@ interface GameScreenProps {
 }
 
 export function GameScreen({ mode, scheme }: GameScreenProps) {
-  const { state, playerProjectiles, explosions, flip, restart } = useGame(mode);
+  const { state, playerProjectiles, explosions, flip, start } = useGame(mode);
   const screenRef = useRef<HTMLElement>(null);
   const [savedHighScore, setSavedHighScore] = useState(() => loadHighScore(mode.id));
   const highScore = Math.max(savedHighScore, state.score);
+  const [difficulty, setDifficulty] = useState<DifficultyId>('advanced');
+  const isPlaying = state.status === 'playing';
   const isOver = state.status === 'over';
   const { muted, toggleMuted } = useMute();
-
-  useKeyboardInput(scheme, flip);
 
   useEffect(() => {
     if (isOver) saveHighScore(mode.id, highScore);
   }, [isOver, highScore, mode.id]);
 
-  const playAgain = useCallback(() => {
+  const begin = useCallback(() => {
     setSavedHighScore(highScore);
-    restart();
-  }, [highScore, restart]);
+    start();
+  }, [highScore, start]);
 
-  usePlayKeys(playAgain, isOver);
+  const flipOrBegin = useCallback(
+    (address: BitAddress) => {
+      if (!isPlaying) begin();
+      flip(address);
+    },
+    [isPlaying, begin, flip],
+  );
+
+  useKeyboardInput(scheme, flipOrBegin);
+  usePlayKeys(begin, !isPlaying);
 
   return (
     <main
@@ -51,19 +62,20 @@ export function GameScreen({ mode, scheme }: GameScreenProps) {
         onToggleMuted={toggleMuted}
       />
       <Playfield enemies={state.enemies} explosions={explosions} nowMs={state.elapsedMs} />
-      <Register value={state.register} scheme={scheme} onFlip={flip} />
+      <Register value={state.register} scheme={scheme} onFlip={flipOrBegin} />
       <PlayerProjectileLayer
         game={state}
         playerProjectiles={playerProjectiles}
         containerRef={screenRef}
       />
-      {isOver && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-bg/85">
-          <h2 className="text-3xl font-bold text-danger">Game over</h2>
-          <p>Score {state.score}</p>
-          <button type="button" className={primaryButton} onClick={playAgain}>
-            Play again
-          </button>
+      {!isPlaying && (
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-4">
+          <StartMenu
+            finalScore={isOver ? state.score : null}
+            difficulty={difficulty}
+            onSelectDifficulty={setDifficulty}
+            onStart={begin}
+          />
         </div>
       )}
     </main>

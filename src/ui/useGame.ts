@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 import { soundsAfterFlip, soundsAfterStep } from '../audio/gameSounds';
 import { playSoundEffect } from '../audio/soundEffects';
 import type { BitAddress } from '../engine/bytes';
-import { createGame, flipBit, step } from '../engine/game';
+import { createGame, flipBit, startGame, step } from '../engine/game';
 import type { GameMode, GameState } from '../engine/types';
 import { explosionsAfterFlip, explosionsAfterStep, type Explosion } from './explosions';
 import {
@@ -77,7 +77,10 @@ function createGameStore(mode: GameMode) {
         explosions,
       });
     },
-    restart: () => update(startingSnapshot(mode)),
+    start() {
+      const fresh = startingSnapshot(mode);
+      update({ ...fresh, game: startGame(fresh.game) });
+    },
   };
 }
 
@@ -102,5 +105,5 @@ export function useGame(mode: GameMode) {
 
   const flip = useCallback((address: BitAddress) => store.flip(address), [store]);
 
-  return { state: game, playerProjectiles, explosions, flip, restart: store.restart };
+  return { state: game, playerProjectiles, explosions, flip, start: store.start };
 }

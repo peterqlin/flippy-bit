@@ -6,7 +6,7 @@ const SPAWN_MARGIN = 0.1;
 export function createGame(mode: GameMode): GameState {
   return {
     mode,
-    status: 'playing',
+    status: 'ready',
     register: new Uint8Array(mode.registerBytes),
     enemies: [],
     elapsedMs: 0,
@@ -17,18 +17,22 @@ export function createGame(mode: GameMode): GameState {
   };
 }
 
+export function startGame(state: GameState): GameState {
+  return state.status === 'ready' ? { ...state, status: 'playing' } : state;
+}
+
 export function difficultyMultiplier(config: GameConfig, score: number): number {
   return 1 + score / config.difficultyDoublesAtScore;
 }
 
 export function flipBit(state: GameState, address: BitAddress): GameState {
-  if (state.status === 'over') return state;
+  if (state.status !== 'playing') return state;
   const flipped = { ...state, register: withBitFlipped(state.register, address) };
   return destroyDueEnemies(matchOldestEnemy(flipped));
 }
 
 export function step(state: GameState, dtMs: number, random: Random): GameState {
-  if (state.status === 'over') return state;
+  if (state.status !== 'playing') return state;
   const advanced: GameState = {
     ...state,
     elapsedMs: state.elapsedMs + dtMs,

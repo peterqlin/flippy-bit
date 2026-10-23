@@ -34,7 +34,7 @@ export interface Enemy {
   matchedAtMs: number | null;
 }
 
-export type GameStatus = 'playing' | 'over';
+export type GameStatus = 'ready' | 'playing' | 'over';
 
 export interface GameState {
   mode: GameMode;
