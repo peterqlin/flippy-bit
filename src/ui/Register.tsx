@@ -12,7 +12,7 @@ export function Register({ value, onFlip }: RegisterProps) {
   );
 
   return (
-    <div className="pt-3">
+    <div className="pt-1.25">
       {addresses.map((bits, byte) => (
         <div className="grid grid-cols-8 gap-1.5" key={byte}>
           {bits.map((address) => {
