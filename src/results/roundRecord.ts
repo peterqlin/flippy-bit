@@ -23,14 +23,14 @@ export function createRoundRecord(): RoundRecord {
   return { judgedFlips: [], kills: [] };
 }
 
-/** The unmatched enemy that will reach the player soonest. */
+/** The unmatched enemy closest to the player. */
 export function priorityEnemy(state: GameState): Enemy | undefined {
-  let soonest: Enemy | undefined;
+  let closest: Enemy | undefined;
   for (const enemy of state.enemies) {
     if (enemy.matchedAtMs !== null) continue;
-    if (!soonest || secondsToArrival(enemy) < secondsToArrival(soonest)) soonest = enemy;
+    if (!closest || enemy.progress > closest.progress) closest = enemy;
   }
-  return soonest;
+  return closest;
 }
 
 export function roundRecordAfterFlip(
@@ -56,10 +56,6 @@ export function roundRecordAfterFlip(
       ]
     : record.kills;
   return { judgedFlips: [...record.judgedFlips, judgedFlip], kills };
-}
-
-function secondsToArrival(enemy: Enemy): number {
-  return (1 - enemy.progress) / enemy.speed;
 }
 
 /** With no destruction delay the matched enemy is already gone from `after`. */

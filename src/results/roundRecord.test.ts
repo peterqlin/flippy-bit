@@ -45,13 +45,13 @@ function flipBits(game: GameState, bits: number[]) {
 }
 
 describe('priorityEnemy', () => {
-  it('picks the enemy that arrives soonest, not the closest', () => {
+  it('picks the closest enemy even when a faster one would arrive sooner', () => {
     const game = gameWith([
       { progress: 0.6, speed: 0.1 },
       { progress: 0.2, speed: 0.4 },
     ]);
 
-    expect(priorityEnemy(game)?.id).toBe(1);
+    expect(priorityEnemy(game)?.id).toBe(0);
   });
 
   it('skips matched enemies', () => {
