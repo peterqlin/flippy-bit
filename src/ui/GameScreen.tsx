@@ -26,9 +26,10 @@ export function GameScreen({ mode, scheme }: GameScreenProps) {
   const [runDifficulty, setRunDifficulty] = useState(difficulty);
   const [savedHighScores, setSavedHighScores] = useState(() => loadHighScores(mode.id));
   const runHighScore = Math.max(savedHighScores[runDifficulty], state.score);
-  const highScore = difficulty === runDifficulty ? runHighScore : savedHighScores[difficulty];
   const isPlaying = state.status === 'playing';
   const isOver = state.status === 'over';
+  const highScore =
+    isOver && difficulty === runDifficulty ? runHighScore : savedHighScores[difficulty];
 
   useEffect(() => {
     if (isOver) saveHighScore(mode.id, runDifficulty, runHighScore);
